@@ -1,4 +1,8 @@
 use std::io;
+use std::io::Read;
+use std::fs::File;
+use std::path::Path;
+use std::env;
 
 const fontset: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70,
@@ -52,13 +56,30 @@ impl CPU {
     }
 
     pub fn fetch_opcode(&mut self) {
+        println!("{}", self.memory[self.program_counter as usize]);
+        self.opcode = (self.memory[self.program_counter as usize] as u16) << 8 | (self.memory[self.program_counter as usize + 1] as u16);
     }
 
     pub fn opcode_execute(&mut self) {
+        println!("{:x}", self.opcode);
     }
 
     pub fn load_game(&mut self, filname: String) {
+        let path_str = &["./rom", &filname.trim()].join("/");
+        let path = Path::new(&path_str);
+        println!("{}", path.display());
+
+        let mut reader = File::open(&path).ok().expect("Failed to load file"); 
+        // self.load_to_memory(&mut reader);
+        for byte in reader.bytes() {
+            let val = byte.unwrap();
+            // println!("{}", val);
+            self.memory[self.program_counter as usize] = val;
+            self.program_counter += 1;
+        }
+        self.program_counter = 0x200;
     }
+
 }
 
 fn main() {
@@ -69,8 +90,9 @@ fn main() {
     io::stdin().read_line(&mut input_val).unwrap();
     cpu.load_game(input_val); 
 
-
-    for i in 1..100 {
+    // load 100 cycle of the ROM
+    loop {
+        cpu.emulate_cycle();
     }
 
     println!("Hello, world!");
