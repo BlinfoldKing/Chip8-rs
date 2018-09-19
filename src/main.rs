@@ -1,10 +1,7 @@
 use std::io;
-
-mod CPU;
-
 use CPU::CPU as C;
 
-
+mod CPU;
 
 
 fn main() {
@@ -15,7 +12,6 @@ fn main() {
     io::stdin().read_line(&mut input_val).unwrap();
     cpu.load_game(input_val); 
 
-    // load 100 cycle of the ROM
     loop {
         cpu.emulate_cycle();
     }

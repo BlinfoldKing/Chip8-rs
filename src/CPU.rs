@@ -58,12 +58,157 @@ impl CPU {
     }
 
     pub fn opcode_execute(&mut self) {
-        println!("{:x}", self.opcode);
+        // println!("{:x}", self.opcode);
         if self.program_counter < 4094 {
             self.program_counter += 1;
         } else {
             self.program_counter = 0x200;
         }
+
+        let nibble = (
+            (self.opcode & 0xF000) >> 12 as u8,
+            (self.opcode & 0x0F00) >> 8 as u8,
+            (self.opcode & 0x00F0) >> 4 as u8,
+            (self.opcode & 0x000F) as u8
+        );
+
+        let nnn = self.opcode & 0x0FFF;
+        let x = self.opcode & 0x0F00 >> 8;
+        let y = self.opcode & 0x00F0 >> 4;
+        let kk = self.opcode & 0x00FF;
+
+        let state = match nibble {
+            (0x0, 0x0, 0xE, 0x0) => (),
+            (0x0, 0x0, 0xE, 0xE) => self.RET(),
+            (0x1, _, _, _) => self.JP(nnn),
+            (0x2, _, _, _) => self.CALL(nnn),
+            (0x3, _, _, _) => self.SE(x, kk),
+            (0x4, _, _, _) => self.SNE(x, kk),
+            (0x5, _, _, 0x0) => self.SE_xy(x, y),
+            (0x6, _, _, _) => self.LD(x, kk),
+            (0x7, _, _, _) => self.ADD(x, kk),
+            (0x8, _, _, 0x0) => self.LD_xy(x, y),
+            (0x8, _, _, 0x1) => self.OR(x, y),
+            (0x8, _, _, 0x2) => self.AND(x, y),
+            (0x8, _, _, 0x3) => self.XOR(x, y),
+            (0x8, _, _, 0x4) => self.ADD_xy(x, y),
+            (0x8, _, _, 0x5) => self.SUB(x, y),
+            (0x8, _, _, 0x6) => self.SHR(x),
+            (0x8, _, _, 0x7) => self.SUBN(x, y),
+            (0x8, _, _, 0xE) => self.SHL(x),
+
+            (_, _, _, _) => ()
+        };
+
+        // println!("{}", state);
+
+
+    }
+
+    fn JP (&mut self, nnn: u16) {
+        println!("JP {}", nnn);
+        self.program_counter = nnn;
+    }
+
+    fn CALL (&mut self, nnn: u16) {
+        println!("CALL {}", nnn);
+        self.stack[self.sp as usize] = self.program_counter;
+        self.sp + 1;
+        self.program_counter = nnn;
+    }
+
+    fn RET (&mut self) {
+        println!("RET");
+        self.program_counter = self.stack[self.sp as usize];
+        self.sp -= 1;
+    }
+
+    fn SE (&mut self, x: u16, kk: u16) {
+        println!("SE {} {}", x, kk);
+        if self.V[x as usize] as u16 == kk {
+            self.program_counter += 2;
+        }
+    }
+
+    fn SNE (&mut self, x: u16, kk: u16) {
+        println!("SNE {} {}", x, kk);
+        if self.V[x as usize] as u16 != kk {
+            self.program_counter += 2;
+        }
+    }
+
+    fn SE_xy (&mut self, x: u16, y: u16) {
+        println!("SE_xy {} {}", x, y);
+        if self.V[x as usize] != self.V[y as usize] {
+            self.program_counter += 2;
+        }
+    }
+
+    fn LD (&mut self, x: u16, kk: u16) {
+        println!("LD {} {}", x, kk);
+        self.V[x as usize] = kk as u8;
+    }
+
+    fn ADD (&mut self, x: u16, kk: u16) {
+        println!("ADD {} {}", x, kk);
+        self.V[x as usize] += kk as u8;
+    }
+
+    fn LD_xy (&mut self, x: u16, y: u16) {
+        println!("LD_xy {} {}", x, y);
+        self.V[x as usize] = self.V[y as usize];
+    }
+
+    fn OR (&mut self, x: u16, y: u16) {
+        println!("OR {} {}", x, y);
+        self.V[x as usize] |= self.V[y as usize];
+    }
+
+    fn AND (&mut self, x: u16, y: u16) {
+        println!("AND {} {}", x, y);
+        self.V[x as usize] &= self.V[y as usize];
+    }
+
+    fn XOR (&mut self, x: u16, y: u16) {
+        println!("XOR {} {}", x, y);
+        self.V[x as usize] ^= self.V[y as usize];
+    }
+
+    fn ADD_xy (&mut self, x: u16, y: u16) {
+        println!("ADD_xy {} {}", x, y);
+        self.V[x as usize] += self.V[y as usize];
+    }
+
+    fn SUB (&mut self, x: u16, y: u16) {
+        println!("SUB {} {}", x, y);
+        if self.V[x as usize] > self.V[y as usize] {
+            self.V[0xF] = 1;
+        } else {
+            self.V[0xF] = 0;
+        }
+        self.V[x as usize] -= self.V[y as usize];
+    }
+
+    fn SHR (&mut self, x: u16) {
+        println!("SHR {}", x);
+        self.V[0xF] = self.V[x as usize] & 0x1;
+        self.V[x as usize] >>= 1;
+    }
+
+    fn SUBN (&mut self, x: u16, y: u16) {
+        println!("SUB {} {}", x, y);
+        if self.V[y as usize] > self.V[x as usize] {
+            self.V[0xF] = 1;
+        } else {
+            self.V[0xF] = 0;
+        }
+        self.V[x as usize] -= self.V[y as usize];
+    }
+
+    fn SHL (&mut self, x: u16) {
+        println!("SHL {}", x);
+        self.V[0xF] = self.V[x as usize] & 0x80;
+        self.V[x as usize] <<= 1;
     }
 
     pub fn load_game(&mut self, filname: String) {
@@ -72,18 +217,12 @@ impl CPU {
         println!("{}", path.display());
 
         let mut reader = File::open(&path).ok().expect("Failed to load file"); 
-        // self.load_to_memory(&mut reader);
         let mut buffer = [0_u8; 3584];
         let bytes_read = if let Ok(bytes_read) = reader.read(&mut buffer) {
                 bytes_read
         } else {
             0
         };
-        println!("{}", bytes_read);
-        println!("test {}", buffer[0]);
-        println!("test {}", buffer[1]);
-        println!("test {}", buffer[2]);
-        println!("test {}", buffer[3]);
 
         for (i, &b) in buffer.iter().enumerate() {
             let addr = 0x200 + i;
