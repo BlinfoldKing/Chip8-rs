@@ -1,5 +1,6 @@
 use std::io;
 use std::io::Read;
+use std::io::prelude::*;
 use std::fs::File;
 use std::path::Path;
 use std::env;
@@ -14,7 +15,6 @@ const fontset: [u8; 80] = [
     0xF0, 0x80, 0x80, 0x80, 0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0,
     0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80
 ];
-
 
 struct CPU {
     opcode: u16,
@@ -56,12 +56,17 @@ impl CPU {
     }
 
     pub fn fetch_opcode(&mut self) {
-        println!("{}", self.memory[self.program_counter as usize]);
+        // println!("{}", self.memory[self.program_counter as usize]);
         self.opcode = (self.memory[self.program_counter as usize] as u16) << 8 | (self.memory[self.program_counter as usize + 1] as u16);
     }
 
     pub fn opcode_execute(&mut self) {
         println!("{:x}", self.opcode);
+        if self.program_counter < 4094 {
+            self.program_counter += 1;
+        } else {
+            self.program_counter = 0x200;
+        }
     }
 
     pub fn load_game(&mut self, filname: String) {
@@ -71,13 +76,34 @@ impl CPU {
 
         let mut reader = File::open(&path).ok().expect("Failed to load file"); 
         // self.load_to_memory(&mut reader);
-        for byte in reader.bytes() {
-            let val = byte.unwrap();
-            // println!("{}", val);
-            self.memory[self.program_counter as usize] = val;
-            self.program_counter += 1;
+        let mut buffer = [0_u8; 3584];
+        let bytes_read = if let Ok(bytes_read) = reader.read(&mut buffer) {
+                bytes_read
+        } else {
+            0
+        };
+        println!("{}", bytes_read);
+        println!("test {}", buffer[0]);
+        println!("test {}", buffer[1]);
+        println!("test {}", buffer[2]);
+        println!("test {}", buffer[3]);
+
+        for (i, &b) in buffer.iter().enumerate() {
+            let addr = 0x200 + i;
+            if addr < 4096 {
+                self.memory[addr] = b;
+            } else {
+                break;
+            }
         }
-        self.program_counter = 0x200;
+        // for byte in reader.bytes() {
+        //     let val = byte.unwrap();
+        //     // println!("{}", val);
+        //     self.memory[self.program_counter as usize] = val;
+        //     // println!("{}", self.memory[self.program_counter as usize]);
+        //     self.program_counter += 1;
+        // }
+        // self.program_counter = 0x200;
     }
 
 }
