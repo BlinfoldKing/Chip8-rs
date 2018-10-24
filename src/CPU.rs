@@ -103,7 +103,8 @@ impl CPU {
             (0xA, _, _, _) => self.LD_I(nnn),
             (0xB, _, _, _) => self.JP_V0(nnn),
             (0xC, _, _, _) => self.RND(x, kk),
-
+            (0xE, _, 0x9, 0xE) => self.SKP(x),
+            (0xE, _, 0xA, 0x1) => self.SKNP(x),
             (_, _, _, _) => ()
         };
 
@@ -238,6 +239,20 @@ impl CPU {
     fn RND (&mut self, x: u16, kk: u16) {
         println!("RND {} {}", x, kk);
         self.V[x as usize] = (thread_rng().gen_range(0, 255) as u16 & kk) as u8;
+    }
+
+    fn SKP (&mut self, x: u16) {
+        println!("SKP {}", x);
+        if true {
+            // self.program_counter += 2;
+        }
+    }
+    
+    fn SKNP (&mut self, x: u16) {
+        println!("SKNP {}", x);
+        if true {
+            // self.program_counter += 2;
+        }
     }
 
     pub fn load_game(&mut self, filname: String) {

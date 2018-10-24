@@ -1,8 +1,18 @@
 use std::io;
 use CPU::CPU as C;
 
-mod CPU;
+extern crate piston;
+extern crate graphics;
+extern crate glutin_window;
+extern crate opengl_graphics;
 
+use piston::window::WindowSettings;
+use glutin_window::GlutinWindow as Window;
+use piston::event_loop::*;
+use piston::input::*;
+use opengl_graphics::{ GlGraphics, OpenGL };
+
+mod CPU;
 
 fn main() {
     let mut cpu = C::new();
@@ -18,3 +28,4 @@ fn main() {
 
     println!("Hello, world!");
 }
+
